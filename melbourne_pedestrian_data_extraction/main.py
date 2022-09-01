@@ -14,7 +14,7 @@ from logging_module import startlogging
 import belong_data_test_custom_functions as cf
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
 	start_script = datetime.datetime.now().strftime('%Y%m%d_%H%M')
 	log          = logging.getLogger(__name__)
