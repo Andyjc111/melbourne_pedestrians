@@ -1,0 +1,161 @@
+-- exclude data which may  be invalid due to changing sensor location. 
+-- also exlcude sensors 33 and 34 which don't have info for covid period.
+create table melb_ped_sensor_locations_cleaned as  
+select
+sensor_id,
+sensor_description,
+lower(replace(sensor_name, ' ', '')) as sensor_name,
+CAST(From_iso8601_timestamp(installation_date) AS timestamp) as installation_date,
+status,
+note,
+direction_1,
+direction_2,
+latitude,
+longitude,
+location
+from belong_data_test.melb_ped_sensor_locations
+where sensor_id not in ('38','32','16', '14', '34','33')
+
+-- change the date times and data into appropriate formats.
+-- make sure there is no data from before sensor's installation date.
+create table melb_ped_count_hourly_cleaned as 
+select
+a.*,
+b.sensor_name as current_sensor_name,
+b.sensor_description,
+b.installation_date
+from (
+      select 
+      id,
+      cast(From_iso8601_timestamp(date_time) as timestamp) as date_time,
+      cast(year as bigint)  as year,
+      month,
+      cast(mdate as bigint) as mdate,
+      day,
+      cast(time as bigint) as time,
+      sensor_id,
+      sensor_name,
+      cast(hourly_counts as bigint) as hourly_counts
+      from belong_data_test.melb_ped_count_hourly 
+      where id != 'id'
+      ) a
+join  melb_ped_sensor_locations_cleaned b    
+ on   a.sensor_id  = b.sensor_id 
+and   a.date_time >= b.installation_date 
+
+
+-- exclude any sensors which were installed after the start of the analysis period (2018-2022)
+-- get the daily and monthly averages.
+create table melb_ped_count_averages as 
+select
+daily.sensor_id,
+daily.current_sensor_name,
+daily.sensor_description,
+avg(case when daily.year   =2018 then daily.daily_total end)     as _2018_avg_peds_daily,
+avg(case when daily.year   =2019 then daily.daily_total end)     as _2019_avg_peds_daily,
+avg(case when daily.year   =2020 then daily.daily_total end)     as _2020_avg_peds_daily,
+avg(case when daily.year   =2021 then daily.daily_total end)     as _2021_avg_peds_daily,
+avg(case when daily.year   =2022 then daily.daily_total end)     as _2022_avg_peds_daily,
+avg(case when monthly.year =2018 then monthly.monthly_total end) as _2018_avg_peds_monthly,
+avg(case when monthly.year =2019 then monthly.monthly_total end) as _2019_avg_peds_monthly,
+avg(case when monthly.year =2020 then monthly.monthly_total end) as _2020_avg_peds_monthly,
+avg(case when monthly.year =2021 then monthly.monthly_total end) as _2021_avg_peds_monthly,
+avg(case when monthly.year =2022 then monthly.monthly_total end) as _2022_avg_peds_monthly
+from (
+      select 
+      sensor_id,
+      current_sensor_name,
+      sensor_description,
+      year,
+      month,
+      mdate,
+      sum(hourly_counts) as daily_total
+      from melb_ped_count_hourly_cleaned
+      where installation_date <= date'2018-01-01'
+        and date_time         >= date'2018-01-01'
+      group by 1,2,3,4,5,6
+      ) daily
+left join 
+     (
+      select 
+      sensor_id,
+      current_sensor_name,
+      sensor_description,
+      year,
+      month,
+      sum(hourly_counts) as monthly_total
+      from melb_ped_count_hourly_cleaned
+      where installation_date <= date'2018-01-01'
+        and date_time         >= date'2018-01-01'      
+      group by 1,2,3,4,5
+      ) monthly
+  on  daily.year        = monthly.year
+  and daily.sensor_id   = monthly.sensor_id
+  and daily.current_sensor_name = monthly.current_sensor_name
+group by 1,2,3
+order by daily.sensor_id desc
+
+
+
+create table melbourne_pedestrian_summary as 
+select
+a.*,
+row_number() over(order by avg_daily_peds_analysis_period   desc) as avg_peds_daily_rnk, 
+row_number() over(order by avg_monthly_peds_analysis_period desc) as avg_peds_monthly_rnk,
+row_number() over(order by percent_normal_peds_during_covid asc)  as percent_normal_peds_during_covid_rnk,
+row_number() over(order by daily_peds_growth_percent_2022   desc) as daily_peds_growth_percent_2022_rnk
+from (
+     select
+     sensor_id,
+     current_sensor_name,
+     sensor_description,
+     ((_2020_avg_peds_daily + _2021_avg_peds_daily ) / (_2018_avg_peds_daily + _2019_avg_peds_daily)*100) as percent_normal_peds_during_covid, 
+     ((_2022_avg_peds_daily ) / (_2021_avg_peds_daily) *100)                                              as daily_peds_growth_percent_2022, 
+     ((_2018_avg_peds_daily + _2019_avg_peds_daily + _2020_avg_peds_daily + _2021_avg_peds_daily +_2022_avg_peds_daily) / 5)           as avg_daily_peds_analysis_period,
+     ((_2018_avg_peds_monthly + _2019_avg_peds_monthly + _2020_avg_peds_monthly + _2021_avg_peds_monthly +_2022_avg_peds_monthly) / 5) as avg_monthly_peds_analysis_period
+     from melb_ped_count_averages
+     ) a
+     
+
+-------------------------------------
+-- ANSWERS
+-------------------------------------
+-- top 10 daily pedistrian locations      
+select
+sensor_id,
+current_sensor_name,
+sensor_description,
+avg_peds_daily_rnk 
+from melbourne_pedestrian_summary
+where avg_peds_daily_rnk <= 10
+order by avg_peds_daily_rnk asc
+
+-- top 10 monthly pedistrian locations      
+select
+sensor_id,
+current_sensor_name,
+sensor_description,
+avg_peds_monthly_rnk 
+from melbourne_pedestrian_summary
+where avg_peds_monthly_rnk <= 10
+order by avg_peds_monthly_rnk asc
+-- biggest reduction in pedestrian counts during covid years     
+select
+sensor_id,
+current_sensor_name,
+sensor_description,
+percent_normal_peds_during_covid
+from melbourne_pedestrian_summary
+where percent_normal_peds_during_covid_rnk =1
+
+-- biggest growth in pedestrian counts 2022 vs 2021    
+select
+sensor_id,
+current_sensor_name,
+sensor_description,
+daily_peds_growth_percent_2022
+from melbourne_pedestrian_summary
+where daily_peds_growth_percent_2022_rnk =1
+
+-- all data
+select * from melbourne_pedestrian_summary
