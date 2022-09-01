@@ -1,7 +1,6 @@
 import os
 import requests
 import json
-import pandas as pd
 import datetime
 import logging
 import os
@@ -9,7 +8,7 @@ import csv
 import boto3
 from botocore.exceptions import ClientError
 import io
-import keyring
+#import keyring
 from logging_module import startlogging
 import melb_peds_custom_functions.py as cf
 
