@@ -65,7 +65,7 @@ if __name__=='__main__':
 			except Exception as e:
 				log.error(f'warning errror occurred during data extraction: {str(e)}')
 				#begin error handling process
-				#exit(1)
+				exit(1)
 				break    
 		
 		
