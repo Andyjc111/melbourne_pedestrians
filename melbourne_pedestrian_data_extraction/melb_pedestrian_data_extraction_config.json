@@ -1,0 +1,26 @@
+{
+"pedestrian_counts": {	  
+						"aws_region_name"      : "ap-southeast-2",
+						"s3_path"			   : "raw-data/melb_ped_count_hourly/",
+						"s3_bucket"			   : "belong-data-test",
+						"glue_database_name"   : "belong_data_test",
+						"glue_table_name"	   : "melb_ped_count_hourly",
+						"api_location"		   : "https://data.melbourne.vic.gov.au/resource/",
+						"dataset"			   : "b2ak-trbp.json",
+						"order_by"			   : "id",
+						"records_per_api_call" : "2000"
+					},
+
+"sensor_locations": {	 
+						"aws_region_name"      : "ap-southeast-2",						
+						"s3_path"			   : "raw-data/melb_ped_sensor_locations/",
+						"s3_bucket"			   : "belong-data-test",
+						"glue_database_name"   : "belong_data_test",
+						"glue_table_name"	   : "melb_ped_sensor_locations",
+						"api_location"		   : "https://data.melbourne.vic.gov.au/resource/",
+						"dataset"			   : "h57g-5234.json",
+						"order_by"			   : "sensor_id",
+						"records_per_api_call" : "2000"
+					}
+					
+}
