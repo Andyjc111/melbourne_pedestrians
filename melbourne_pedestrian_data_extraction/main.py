@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 import io
 import keyring
 from logging_module import startlogging
-import belong_data_test_custom_functions as cf
+import melb_peds_custom_functions.py as cf
 
 
 if __name__ == '__main__':
