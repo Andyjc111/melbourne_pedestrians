@@ -56,6 +56,8 @@ To Execute melbourne_pedestrian_data_extraction:
  
  Be careful to ensure the actual values for these items are properly encoded.
  
+NOTE: the IAM user for associated access key and secret access key will need to have enough access to AWS s3 and Glue to write files, create glue database, create glue table, delete glue table
+ 
  Once this is complete simply execute the main.py file.
  
  Note that you can also edit the main.py file to save a local csv file instead if AWS access is not easy.
