@@ -122,7 +122,7 @@ if __name__ == '__main__':
 				DatabaseName = glue_database_name,
 				TableInput   ={
 					'Name': glue_table_name,    
-					'Description': 'Table created for storing melbourne pedestrain sensor data (part of Belong interview test)',
+					'Description': 'Table created for storing melbourne pedestrain sensor data',
 					'StorageDescriptor': {    
 						'Columns': columns_formatted,
 						'Location': f's3://{s3_bucket}/{s3_path}/',
